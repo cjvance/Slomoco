@@ -271,17 +271,26 @@ function statMask_noCor() {
 
     # echo ${MASK}/${outMaskImg}
 
+    # Although the output of this function is a statistical image and not a mask image, it is input into 3dttest++ as a mask and is treated like a mask
+    # as 3dttest++ looks for non-zero voxels in the -mask file. 
+
 } # End of statMask_noCor
 
 function oneSample_tTest() {
     #------------------------------------------------------------------------
     #
-    #  Purpose:
+    #  Purpose: This function performs an voxel-wise ttest, filtered by the thresholded group meaned image used as a mask, between a mean of the individual
+    #           subject's statistical images (from the GLM) and a null condition of 0. The set of individual subject's statistical images, ${ttestInputList[*]},
+    #           is made up of the two sub-brick ttstat and coef images created in the groupImageStats function.
     #
+    #    Input: maskFile=${MASK}/${grpStatsMean}_${plvl}_uncor_mask.sent.nii.gz
+    #           outImage=${TTEST}/${cond}_${plvl}_ttest_uncor.sent.nii.gz
+    #           ***Check This
+    #           copyImage=${TIMG}/${cond}_${plvl}_ttest_uncor.nii.gz
+    #           ***Check This
     #
-    #    Input:
-    #
-    #   Output:
+    #   Output: The resulting image is a statistical map showing the areas in which significant individual activation from the GLM appeared to a significant 
+    #           degree throughout the group. ROIs will later be selected from these tstat images after they have been thresholded and corrected.
     #
     #------------------------------------------------------------------------
 
@@ -298,11 +307,11 @@ function oneSample_tTest() {
 
     3dttest++ \
         -setA ${ttestInputList[*]} \
-        -mask ${maskFile}.nii.gz \
-        -prefix ${outImage}.nii.gz
+        -mask ${MASK}/${maskFile}.nii.gz \
+        -prefix ${TTEST}/${outImage}.nii.gz
 
     3dcopy \
-        ${outImage}.nii.gz \
+        $${TTEST}/{outImage}.nii.gz \
         ${TIMG}/${copyImage}.nii.gz
 
 } # End of oneSample_tTest
@@ -486,40 +495,40 @@ function main() {
             fwhm_num=0
         fi
 
-        3dClustSim -fwhm ${fwhm_num} -nodec -pthr 0.20 0.10 0.05 0.01 -nxyz 91 109 91 -dxyz 2.0 2.0 2.0 > ${TEXT}/clust_sim.sent.txt
+        # 3dClustSim -fwhm ${fwhm_num} -nodec -pthr 0.20 0.10 0.05 0.01 -nxyz 91 109 91 -dxyz 2.0 2.0 2.0 > ${TEXT}/clust_sim.sent.txt
 
-        for plvl in {0.10,0.05,0.01}; do
+        # for plvl in {0.10,0.05,0.01}; do
 
-            outMask=$(basename ${grpStatsMean} .sent)
-            outStatMask=${outMask}_${plvl}_cor_mask.sent
+        #     outMask=$(basename ${grpStatsMean} .sent)
+        #     outStatMask=${outMask}_${plvl}_cor_mask.sent
 
-            case ${plvl} in
-                # "0.20" )
-                #     clust=$(awk '$1 ~ /0.200000/ && NR>7 && NR<12 {print $3}' ${TEXT}/clust_sim.sent.txt)
-                #     ;;
-                "0.10" )
-                    clust=$(awk '$1 ~ /0.100000/ && NR>7 && NR<12 {print $3}' ${TEXT}/clust_sim.sent.txt)
-                    ;;
-                "0.05" )
-                    clust=$(awk '$1 ~ /0.050000/ && NR>7 && NR<12 {print $3}' ${TEXT}/clust_sim.sent.txt)
-                    ;;
-                "0.01" )
-                    clust=$(awk '$1 ~ /0.010000/ && NR>7 && NR<12 {print $3}' ${TEXT}/clust_sim.sent.txt)
-                    ;;
-            esac
+        #     case ${plvl} in
+        #         # "0.20" )
+        #         #     clust=$(awk '$1 ~ /0.200000/ && NR>7 && NR<12 {print $3}' ${TEXT}/clust_sim.sent.txt)
+        #         #     ;;
+        #         "0.10" )
+        #             clust=$(awk '$1 ~ /0.100000/ && NR>7 && NR<12 {print $3}' ${TEXT}/clust_sim.sent.txt)
+        #             ;;
+        #         "0.05" )
+        #             clust=$(awk '$1 ~ /0.050000/ && NR>7 && NR<12 {print $3}' ${TEXT}/clust_sim.sent.txt)
+        #             ;;
+        #         "0.01" )
+        #             clust=$(awk '$1 ~ /0.010000/ && NR>7 && NR<12 {print $3}' ${TEXT}/clust_sim.sent.txt)
+        #             ;;
+        #     esac
 
-            echo -e "\nThe cluster threshold is ${clust}\n"
+        #     echo -e "\nThe cluster threshold is ${clust}\n"
 
-            echo -e "\nThe mask will be named ${outStatMask}\n"
+        #     echo -e "\nThe mask will be named ${outStatMask}\n"
 
-            statMask ${grpStatsMean} ${outStatMask} ${clust} ${plvl} 2>&1 | tee -a ${ANOVA}/log_mask.txt
+        #     statMask ${grpStatsMean} ${outStatMask} ${clust} ${plvl} 2>&1 | tee -a ${ANOVA}/log_mask.txt
 
-            # echo -e "\nThe inputMask will be ${MASK}/${outStatMask}\n"
+        #     # echo -e "\nThe inputMask will be ${MASK}/${outStatMask}\n"
 
-            oneSample_tTest ${MASK}/${outStatMask} ${TTEST}/${cond}_${plvl}_ttest_cor.sent 2>&1 | tee -a ${ANOVA}/log_ttest.txt
-            # echo -e "\nThe ttestInputList is"
-            # echo "${ttestInputList[*]}"
-        done
+        #     oneSample_tTest ${MASK}/${outStatMask} ${TTEST}/${cond}_${plvl}_ttest_cor.sent 2>&1 | tee -a ${ANOVA}/log_ttest.txt
+        #     # echo -e "\nThe ttestInputList is"
+        #     # echo "${ttestInputList[*]}"
+        # done
 
         for plvl in 0.20; do
 
@@ -528,7 +537,7 @@ function main() {
 
             statMask_noCor ${grpStatsMean} ${outStatMask} ${plvl} 2>&1 | tee -a ${ANOVA}/log_mask.txt
 
-            oneSample_tTest ${MASK}/${outStatMask} ${TTEST}/${cond}_${plvl}_ttest_uncor.sent 2>&1 | tee -a ${ANOVA}/log_ttest.txt
+            oneSample_tTest ${outStatMask} ${cond}_${plvl}_ttest_uncor.sent 2>&1 | tee -a ${ANOVA}/log_ttest.txt
 
         done
 
