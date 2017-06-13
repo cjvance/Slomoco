@@ -4,8 +4,9 @@
 #          Author: Chris Vance
 #            Date: 2/11/16
 #
-#     Description: Performs a general linear model on the russian single subject
-#                  data
+#     Description: Performs a general linear model on the russian single subjects from the Russian data using all of the different
+#                  motion correction, covariate, smoothing combinations across both the learnable and unlearnable groups of subjects. 
+#     
 #
 #
 #    Deficiencies:
@@ -22,12 +23,17 @@
 function setup_dir() {
     #------------------------------------------------------------------------
     #
-    #  Purpose:
+    #  Purpose: Set up the directory structure for the GLM. Within the GLM directory, there is a seperate directory for each motion correction,
+    #           condition (covariates), smoothing, and stimulus combination.
     #
     #
-    #    Input:
+    #    Input: None
     #
-    #   Output:
+    #   Output: Within the directory for each combination of parameters, the GLMs are grouped first by subject and then by run. Within each run 
+    #           directory, there are 6 subdirectories: 1D, Images, Stats, Mask, Fitts, and Errts. Each of these subdirectories is used as a destination 
+    #           for different parts of the GLM analysis. In addition to these subdirectories this function creates seperate tTest result directories to 
+    #           the final data can be found in a single location. This function also creates various log files in which the standard output is captured 
+    #           and printed to the log file during various portions of the analysis.
     #
     #------------------------------------------------------------------------
 
@@ -42,12 +48,14 @@ function setup_dir() {
 function regress_masking() {
     #------------------------------------------------------------------------
     #
-    #  Purpose:
+    #  Purpose: To create an idividual subject mask to later be used in the deconvolution stage of the GLM. This function uses the AFNI command
+    #           3dAutomask to create the mask from the subject's preprocessed functional data.
     #
+    #    Input: input4d=${FUNC}/${runsub}_176tr_${mc}_despike_mni_6mm.nii.gz
+    #           fullmask=${MASK}/fullmask_${runsub}_176tr_${mc}_despike_mni_6mm.nii.gz
     #
-    #    Input:
-    #
-    #   Output:
+    #   Output: The output of this function is a mask file using subject's functional data. There is no thresholding of the functional data so this
+    #           mask serves primarily to mask-out voxels that are outside the brain.
     #
     #------------------------------------------------------------------------
 
@@ -72,12 +80,16 @@ function regress_masking() {
 function regress_motion() {
     #------------------------------------------------------------------------
     #
-    #  Purpose:
+    #  Purpose: To extract the six motion (roll, pitch, yaw, dS, dL, dP) parameters from the individual subject functional data. These parameters are 
+    #           demeaned and the derivative is taken creating two sets (demean, deriv) of six motion parameters to later be used as covariates in the
+    #           deconvolution. The extracted parameters are saved in 1D format and plotted across TRs.
     #
+    #    Input: input1d=${ACCESS}/${runsub}_176tr{.mocoafni,.mocoafni2,_dfile}
+    #           output1d=${ID}/motion.${runsub}_${mc}_{demean.1D,demean,deriv.1D,deriv}
     #
-    #    Input:
-    #
-    #   Output:
+    #   Output: There are four output files from each run of this function: a demean 1D file, a deriv 1D file, a plot of the demean file, and a plot
+    #           of the deriv file. The 1D files will be used as covariates in the deconvolution while the plots are simply a visualization of subject
+    #           motion. 
     #
     #------------------------------------------------------------------------
 
