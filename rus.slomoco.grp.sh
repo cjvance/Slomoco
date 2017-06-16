@@ -24,7 +24,7 @@
 function SetupDir() {
     #------------------------------------------------------------------------
     #
-    #  Purpose: Set up the directory structure within the ANOVA Directory required to run this script
+    #  Purpose: To set up the directory structure within the ANOVA Directory required to run this script
     #           and create the log files associated with different functions
     #
     #    Input: None
@@ -45,7 +45,7 @@ function SetupDir() {
 function groupImageStats() {
     #------------------------------------------------------------------------
     #
-    #  Purpose: To Create files with only the tstat and coef sub-bricks from the sent stimuli so analysis can
+    #  Purpose: To create files with only the tstat and coef sub-bricks from the sent stimuli so analysis can
     #           can begin on just these two sub-bricks. The output creates a list of subject stat files that
     #           are analyzed as a group in subsequent functions.
     #
@@ -82,7 +82,7 @@ function groupImageStats() {
 function computeImageMean() {
     #------------------------------------------------------------------------
     #
-    #  Purpose: Create seperate mean images from the individual subject tstat and coef images created in groupImageStats
+    #  Purpose: To create seperate mean images from the individual subject tstat and coef images created in groupImageStats.
     #           The mean images for the tstat sub-brick and coef sub-brick are created seperately based on the input given.
     #           The image means are calculated from the subStatsBrikList which is populated by all of the choosen sub-bricks
     #           from the individual subject images.
@@ -126,7 +126,7 @@ function computeImageMean() {
 function meanImageStats() {
     #------------------------------------------------------------------------
     #
-    #  Purpose: Take the mean Coef image and mean Tstat image and put them together into a single mean stat image. The stat
+    #  Purpose: To take the mean Coef image and mean Tstat image and put them together into a single mean stat image. The stat
     #           image is created from a list containing a tstat image and a coef image. If the statpar for the tstat image
     #           needs to be changed, the 3drefit command can be utilized.
     #
@@ -164,7 +164,7 @@ function meanImageStats() {
 function subNoNeg() {
     #------------------------------------------------------------------------
     #
-    #  Purpose: Takes each individual subject and and gets rid of all the negative activation on a subject to subject basis.
+    #  Purpose: This function takes each individual subject and and gets rid of all the negative activation on a subject to subject basis.
     #           Even though this function was called in Main, the output was not used because, for Slomoco, we are looking
     #           at both positive and negative activation. This function is also meant to prepare the individual subjects to
     #           eventually be run through the mean image to obtain the individual subject stats.
@@ -197,54 +197,59 @@ function subNoNeg() {
 } # End of subNoNeg
 
 
-function statMask() {
-    #------------------------------------------------------------------------
-    #
-    #  Purpose:
-    #
-    #
-    #    Input:
-    #
-    #   Output:
-    #
-    #------------------------------------------------------------------------
+# function statMask() {
+#     #------------------------------------------------------------------------
+#     #
+#     #  Purpose:
+#     #
+#     #
+#     #    Input:
+#     #
+#     #   Output:
+#     #
+#     #------------------------------------------------------------------------
 
-    # echo -e "\nCalling statMask\n"
+#     # echo -e "\nCalling statMask\n"
 
-    local imgFile=$1
-    local outMaskImg=$2
-    local cluster=$3
-    local plvl=$4
+#     local imgFile=$1
+#     local outMaskImg=$2
+#     local cluster=$3
+#     local plvl=$4
 
-    fittCMD="fitt_p2t(${plvl}000,${statpar})"
+#     fittCMD="fitt_p2t(${plvl}000,${statpar})"
 
-    echo "The ccalc experssion is ${fittCMD}"
+#     echo "The ccalc experssion is ${fittCMD}"
 
-    thresh=$(ccalc -expr ${fittCMD})
+#     thresh=$(ccalc -expr ${fittCMD})
 
-    echo "The threshold is ${thresh}"
+#     echo "The threshold is ${thresh}"
 
-    3dmerge \
-        -1tindex 1 \
-        -dxyz=1 \
-        -1clust_order 1.01 ${cluster} \
-        -1thresh ${thresh} \
-        -prefix ${MASK}/${outMaskImg}.nii.gz \
-        ${imgFile}.nii.gz
+#     3dmerge \
+#         -1tindex 1 \
+#         -dxyz=1 \
+#         -1clust_order 1.01 ${cluster} \
+#         -1thresh ${thresh} \
+#         -prefix ${MASK}/${outMaskImg}.nii.gz \
+#         ${imgFile}.nii.gz
 
-    # echo ${MASK}/${outMaskImg}
+#     # echo ${MASK}/${outMaskImg}
 
-} # End of statMask
+# } # End of statMask
 
 function statMask_noCor() {
     #------------------------------------------------------------------------
     #
-    #  Purpose:
+    #  Purpose: To create a mask from the Coef and Tstat images created in the function meanImageStats. The group meaned data, consisting of two sub-bricks (Coef and Tstat),
+    #           is thresholded with a numeric t-value determined using the afni format fitt_p2t input into the ccalc command. A group statistical mask is subsequently created
+    #           by thresholding the group meaned image with the calulated threshold and no correction value.
     #
+    #    Input: imgFile=${MEAN}/${cond}_0sec_Group_StatsMean.sent.nii.gz
+    #           outMaskImg=${MASK}/${cond}_0sec_Group_StatsMean_${plvl}_uncor_mask.sent.nii.gz
+    #           plvl=0.20 (for this analysis, all thresholding was done with a p-value of 0.20 but that can be modified)
     #
-    #    Input:
-    #
-    #   Output:
+    #   Output: Mistakenly, the output of this function was initially a statistical dataset instead of a mask dataset. The script was ran again with the addition of the -1clust
+    #           flag within the afni command 3dmerge to ensure that the the results were identical when the -mask file in 3dttest++ is a statistical dataset vs. a mask dataset.
+    #           The results do not change when the output of this function is a mask or a statistical dataset.
     #
     #------------------------------------------------------------------------
 
@@ -262,8 +267,12 @@ function statMask_noCor() {
 
     echo "The threshold is ${thresh}"
 
+    # I found that the output of this function does not produce a mask file and instead creates a statistical file that seems to work in the place of a statistical mask
+    # with the 3dttest++ command. The -1clust 1 2 flag was added to ensure the results were the same, even with the output of this function as a statistical file.
+
     3dmerge \
         -1tindex 1 \
+        -1clust 1 2 \
         -dxyz=1 \
         -1thresh ${thresh} \
         -prefix ${MASK}/${outMaskImg}.nii.gz \
@@ -271,26 +280,17 @@ function statMask_noCor() {
 
     # echo ${MASK}/${outMaskImg}
 
-    # Although the output of this function is a statistical image and not a mask image, it is input into 3dttest++ as a mask and is treated like a mask
-    # as 3dttest++ looks for non-zero voxels in the -mask file. 
-
 } # End of statMask_noCor
 
 function oneSample_tTest() {
     #------------------------------------------------------------------------
     #
-    #  Purpose: This function performs an voxel-wise ttest, filtered by the thresholded group meaned image used as a mask, between a mean of the individual
-    #           subject's statistical images (from the GLM) and a null condition of 0. The set of individual subject's statistical images, ${ttestInputList[*]},
-    #           is made up of the two sub-brick ttstat and coef images created in the groupImageStats function.
+    #  Purpose:
     #
-    #    Input: maskFile=${MASK}/${grpStatsMean}_${plvl}_uncor_mask.sent.nii.gz
-    #           outImage=${TTEST}/${cond}_${plvl}_ttest_uncor.sent.nii.gz
-    #           ***Check This
-    #           copyImage=${TIMG}/${cond}_${plvl}_ttest_uncor.nii.gz
-    #           ***Check This
     #
-    #   Output: The resulting image is a statistical map showing the areas in which significant individual activation from the GLM appeared to a significant 
-    #           degree throughout the group. ROIs will later be selected from these tstat images after they have been thresholded and corrected.
+    #    Input:
+    #
+    #   Output:
     #
     #------------------------------------------------------------------------
 
@@ -307,11 +307,11 @@ function oneSample_tTest() {
 
     3dttest++ \
         -setA ${ttestInputList[*]} \
-        -mask ${MASK}/${maskFile}.nii.gz \
-        -prefix ${TTEST}/${outImage}.nii.gz
+        -mask ${maskFile}.nii.gz \
+        -prefix ${outImage}.nii.gz
 
     3dcopy \
-        $${TTEST}/{outImage}.nii.gz \
+        ${outImage}.nii.gz \
         ${TIMG}/${copyImage}.nii.gz
 
 } # End of oneSample_tTest
@@ -537,7 +537,7 @@ function main() {
 
             statMask_noCor ${grpStatsMean} ${outStatMask} ${plvl} 2>&1 | tee -a ${ANOVA}/log_mask.txt
 
-            oneSample_tTest ${outStatMask} ${cond}_${plvl}_ttest_uncor.sent 2>&1 | tee -a ${ANOVA}/log_ttest.txt
+            oneSample_tTest ${MASK}/${outStatMask} ${TTEST}/${cond}_${plvl}_ttest_uncor.sent 2>&1 | tee -a ${ANOVA}/log_ttest.txt
 
         done
 
